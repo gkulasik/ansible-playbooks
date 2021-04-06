@@ -1,0 +1,61 @@
+- name: Default setup for Ubuntu VM servers
+  hosts: "*"
+  tasks:
+    - name: Update repo and upgrade all libraries
+      apt:
+        update_cache: yes
+        upgrade: 'yes'
+      become: true
+
+    - name: Install qemu-guest-agent
+      apt:
+        name: qemu-guest-agent
+        state: present
+        update_cache: true
+      become: true
+
+    - name: Disable root user
+      ansible.builtin.command: passwd -l root
+      become: true
+
+    - name: Setup firewall
+      block:
+        - name: Allow all outgoing calls
+          community.general.ufw:
+            default: allow
+            direction: outgoing
+        - name: Allow no incoming calls
+          community.general.ufw:
+            default: deny
+            direction: incoming  
+        - name: Allow ssh (with limit)
+          community.general.ufw:
+            rule: limit
+            port: ssh
+        - name: Enable UFW
+          community.general.ufw:
+            state: enabled
+      become: true
+
+    - name: Install Fail2Ban
+      apt:
+        name: fail2ban
+        state: present
+        update_cache: true
+      become: true
+
+    - name: Setup Fail2Ban
+      block:
+        - name: Copy Fail2Ban conf file
+          ansible.builtin.copy:
+            src: /etc/fail2ban/fail2ban.conf
+            dest: /etc/fail2ban/fail2ban.local
+            remote_src: yes
+        - name: Copy Fail2Ban jail file
+          ansible.builtin.copy:
+            src: /etc/fail2ban/jail.conf
+            dest: /etc/fail2ban/jail.local
+            remote_src: yes
+        - name: Restart service   
+          ansible.builtin.command: systemctl restart fail2ban
+      become: true        

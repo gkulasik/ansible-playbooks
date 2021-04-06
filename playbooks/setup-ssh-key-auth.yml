@@ -1,0 +1,13 @@
+- name: Setup ssh key auth with servers
+  hosts: "*"
+  tasks:
+    - name: Create or ensure ssh dir exists
+      file:
+        path: "~/.ssh"
+        state: directory
+    - name: Create or ensure authorized_keys file exists
+      file:
+        path: "~/.ssh/authorized_keys"
+        state: touch 
+    - name: Add key to file
+      lineinfile: path=~/.ssh/authorized_keys line={{lookup('file', '~/.ssh/id_rsa.pub')}} create=yes state=present
