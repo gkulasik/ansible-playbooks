@@ -7,6 +7,9 @@
 $ sudo apt install python3.9
 $ sudo apt install openssh-server
 
+# Have server advertise hostname (ex. my-server.local)
+$ sudo apt install avahi-daemon
+
 # If going to use SSH pass rather than key based auth
 $ sudo apt install sshpass
 ```
