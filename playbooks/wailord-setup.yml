@@ -1,0 +1,156 @@
+- name: Wailord Setup - Docker and Portainer
+  hosts: "wailord.local"
+  tasks:
+    - name: Update repo and upgrade all libraries
+      apt:
+        update_cache: yes
+        upgrade: 'yes'
+      become: true
+
+    - name: Remove legacy docker items
+      block:
+        - name: Remove docker
+          apt:
+            name: docker
+            state: absent
+        - name: Remove docker-engine
+          apt:
+            name: docker-engine
+            state: absent
+        - name: Remove docker.io
+          apt:
+            name: docker.io
+            state: absent
+        - name: Remove containerd
+          apt:
+            name: containerd
+            state: absent
+        - name: Remove runc
+          apt:
+            name: runc
+            state: absent
+      become: true 
+
+    - name: Install Docker dependencies
+      block:
+        - name: Install apt-transport-https
+          apt:
+            name: apt-transport-https
+            state: present
+            update_cache: true
+        - name: Install ca-certificates
+          apt:
+            name: ca-certificates
+            state: present
+            update_cache: true
+        - name: Install curl
+          apt:
+            name: curl
+            state: present
+            update_cache: true
+        - name: Install gnupg
+          apt:
+            name: gnupg
+            state: present
+            update_cache: true
+        - name: Install lsb-release
+          apt:
+            name: lsb-release
+            state: present
+            update_cache: true
+        - name: Install software-properties-common
+          apt:
+            name: software-properties-common
+            state: present
+            update_cache: true
+        - name: Install python3-pip
+          apt:
+            name: python3-pip
+            state: present
+            update_cache: true
+        - name: Install virtualenv
+          apt:
+            name: virtualenv
+            state: present
+            update_cache: true
+        - name: Install python3-setuptools
+          apt:
+            name: python3-setuptools
+            state: present
+            update_cache: true
+      become: true
+
+    - name: Add Docker GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+      become: true
+      
+    - name: Add specified repository into sources list
+      ansible.builtin.apt_repository:
+        repo: deb https://download.docker.com/linux/ubuntu focal stable
+        state: present
+      become: true
+
+    - name: Update repo and upgrade all libraries due to updated repos
+      apt:
+        update_cache: yes
+        upgrade: 'yes'
+      become: true
+
+    - name: Install Docker
+      block:
+        - name: Install docker-ce
+          apt:
+            name: docker-ce
+            state: present
+            update_cache: true
+        - name: Install docker-ce-cli
+          apt:
+            name: docker-ce-cli
+            state: present
+            update_cache: true
+        - name: Install containerd.io
+          apt:
+            name: containerd.io
+            state: present
+            update_cache: true
+        - name: Install python docker
+          pip:
+            name: docker
+      become: true
+
+    - name: Hello World Test
+      docker_container:
+        name: hello-world-test
+        image: hello-world
+      become: true
+
+    - name: Portainer setup
+      block:
+        - name: Create a Portainer volume
+          docker_volume:
+            name: portainer_data
+        - name: Create Portainer Server
+          docker_container:
+            name: portainer
+            image: portainer/portainer-ce
+            restart_policy: always
+            ports:
+               - "8000:8000"
+               - "9000:9000"
+            volumes:
+              - portainer_data:/data
+              - /var/run/docker.sock:/var/run/docker.sock
+        - name: Create Portainer Agent
+          docker_container:
+            name: portainer_agent
+            image: portainer/agent
+            restart_policy: always
+            ports:
+              - "9001:9001"
+            volumes:
+              - /var/run/docker.sock:/var/run/docker.sock
+              - /var/lib/docker/volumes:/var/lib/docker/volumes
+      become: true
+    
